@@ -1,0 +1,110 @@
+import sys
+sys.path.append("../ml_lib")
+from dataset import CustomDataset
+from train_eval import train_epoch, eval_model
+from device import get_device_info
+
+from transformers import BertTokenizer, RobertaTokenizer, DebertaTokenizer, AutoModelForSequenceClassification
+
+
+def get_tokenizer(model_name):
+    if "bert-base-uncased" in model_name.lower():
+        return BertTokenizer.from_pretrained(model_name)
+    elif "roberta-base" in model_name.lower():
+        return RobertaTokenizer.from_pretrained(model_name)
+    elif "microsoft/deberta-base" in model_name.lower():
+        return DebertaTokenizer.from_pretrained(model_name)
+    else:
+        raise ValueError("Unsupported model tokenizer.")
+
+def get_model(model_name, hybrid=None, num_labels=None):
+    if hybrid is None:
+        return AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=num_labels)
+    elif hybrid == "lstm":
+        return BertLSTMClassifier(model_name, num_labels)
+    elif hybrid == "bilstm":
+        return BertBiLSTMClassifier(model_name, num_labels)
+    elif hybrid == "cnn":
+        return BertCNNClassifier(model_name, num_labels)
+    else:
+        raise ValueError("Unsupported hybrid type.")
+
+def apply_resampling(X, y, method="none"):
+    if method == "none":
+        return X, y
+    elif method == "ros":
+        return RandomOverSampler().fit_resample(X, y)
+    elif method == "smote":
+        return SMOTE().fit_resample(X, y)
+    elif method == "textgan":
+        return textgan_augment(X, y)  # 假設你有自訂 function
+    else:
+        raise ValueError("Unknown resampling method")
+
+from sklearn.model_selection import StratifiedKFold
+from torch.utils.data import DataLoader
+from torch.nn import CrossEntropyLoss
+from torch.optim import AdamW
+import numpy as np
+import time
+
+def run_kfold_experiment(
+    X, y, model_name, hybrid_type, resample_method,
+    kfold, seed, epochs, patience, max_length, batch_size, lr, weight_decay, 
+):
+    
+    skf = StratifiedKFold(n_splits=kfold, shuffle=True, random_state=seed)
+    all_fold_results = []
+    tokenizer = get_tokenizer(model_name)
+    device = get_device_info()
+    
+    start_time = time.time()
+    for fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):
+        print(f"\n[Fold {fold + 1}]")
+        X_train = [X[i] for i in train_idx]
+        y_train = [y[i] for i in train_idx]
+        X_val = [X[i] for i in val_idx]
+        y_val = [y[i] for i in val_idx]
+
+        X_train, y_train = apply_resampling(X_train, y_train, method=resample_method)
+
+        train_dataset = CustomDataset(X_train, y_train, tokenizer, max_length)
+        val_dataset = CustomDataset(X_val, y_val, tokenizer, max_length)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size)
+
+        num_labels = len(set(y))
+        model = get_model(model_name, hybrid_type, num_labels=num_labels)
+        model.to(device)
+
+        optimizer = AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+        criterion = CrossEntropyLoss()
+
+        epoch_results = []
+        best_macro_f1 = 0
+        epochs_without_improvement = 0
+
+        for epoch in range(epochs):
+            print(f"Epoch {epoch + 1}/{epochs}")
+            train_loss = train_epoch(model, train_loader, optimizer, criterion, device)
+            metrics = eval_model(model, val_loader, criterion, device, num_labels)
+            print(metrics)
+            epoch_results.append(metrics)
+
+            current_macro_f1 = metrics["macro_f1-score"]
+            if current_macro_f1 > best_macro_f1:
+                best_macro_f1 = current_macro_f1
+                epochs_without_improvement = 0
+            else:
+                epochs_without_improvement += 1
+
+            if epochs_without_improvement >= patience:
+                print("Early stopping.")
+                break
+
+        best_epoch_metrics = max(epoch_results, key=lambda x: x["macro_f1-score"])
+        all_fold_results.append(best_epoch_metrics)
+
+    end_time = time.time()
+    print(f"Total time: {end_time - start_time:.2f}s")
+    return all_fold_results
