@@ -1,7 +1,7 @@
 from dataset import CustomDataset
 from train_eval import train_epoch, eval_model
 from device import get_device_info
-from hybrid_model import HybridLstmClassifier, HybridCnnClassifier
+from hybrid_model import HybridLstmClassifier, HybridCnnClassifier, HybridBilstmClassifier
 
 from transformers import BertTokenizer, RobertaTokenizer, DebertaTokenizer, AutoModelForSequenceClassification
 
