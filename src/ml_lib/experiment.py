@@ -1,29 +1,37 @@
-from ml_lib.dataset import CustomDataset
-from ml_lib.train_eval import train_epoch, eval_model
-from ml_lib.device import get_device_info
+from dataset import CustomDataset
+from train_eval import train_epoch, eval_model
+from device import get_device_info
+from hybrid_model import HybridLstmClassifier, HybridCnnClassifier
 
 from transformers import BertTokenizer, RobertaTokenizer, DebertaTokenizer, AutoModelForSequenceClassification
 
 
 def get_tokenizer(model_name):
     if "bert-base-uncased" in model_name.lower():
+        print("tokenizer is bert-base-uncased")
         return BertTokenizer.from_pretrained(model_name)
     elif "roberta-base" in model_name.lower():
+        print("tokenizer is roberta-base")
         return RobertaTokenizer.from_pretrained(model_name)
     elif "microsoft/deberta-base" in model_name.lower():
+        print("tokenizer is microsoft/deberta-base")
         return DebertaTokenizer.from_pretrained(model_name)
     else:
         raise ValueError("Unsupported model tokenizer.")
 
 def get_model(model_name, hybrid=None, num_labels=None):
     if hybrid is None:
+        print("model is", model_name)
         return AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=num_labels)
     elif hybrid == "lstm":
-        return BertLSTMClassifier(model_name, num_labels)
+        print("model is", model_name, hybrid)
+        return HybridLstmClassifier(model_name, num_labels)
     elif hybrid == "bilstm":
-        return BertBiLSTMClassifier(model_name, num_labels)
+        print("model is", model_name, hybrid)
+        return HybridBilstmClassifier(model_name, num_labels)
     elif hybrid == "cnn":
-        return BertCNNClassifier(model_name, num_labels)
+        print("model is", model_name, hybrid)
+        return HybridCnnClassifier(model_name, num_labels)
     else:
         raise ValueError("Unsupported hybrid type.")
 
@@ -86,6 +94,7 @@ def run_kfold_experiment(
             print(f"Epoch {epoch + 1}/{epochs}")
             train_loss = train_epoch(model, train_loader, optimizer, criterion, device)
             metrics = eval_model(model, val_loader, criterion, device, num_labels)
+            metrics["train_loss"] = train_loss
             print(metrics)
             epoch_results.append(metrics)
 
