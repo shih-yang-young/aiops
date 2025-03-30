@@ -1,8 +1,6 @@
-import sys
-sys.path.append("../ml_lib")
-from dataset import CustomDataset
-from train_eval import train_epoch, eval_model
-from device import get_device_info
+from ml_lib.dataset import CustomDataset
+from ml_lib.train_eval import train_epoch, eval_model
+from ml_lib.device import get_device_info
 
 from transformers import BertTokenizer, RobertaTokenizer, DebertaTokenizer, AutoModelForSequenceClassification
 
