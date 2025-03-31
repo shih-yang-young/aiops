@@ -4,7 +4,7 @@ from device import get_device_info
 from hybrid_model import HybridLstmClassifier, HybridCnnClassifier, HybridBilstmClassifier
 
 from transformers import BertTokenizer, RobertaTokenizer, DebertaTokenizer, AutoModelForSequenceClassification
-
+import numpy as np
 
 def get_tokenizer(model_name):
     if "bert-base-uncased" in model_name.lower():
@@ -58,7 +58,7 @@ def run_kfold_experiment(
     X, y, model_name, hybrid_type, resample_method,
     kfold, seed, epochs, patience, max_length, batch_size, lr, weight_decay, 
 ):
-    
+    print(f"▶ Running: {model_name} + {hybrid_type or 'plain'} + {resample_method}")
     skf = StratifiedKFold(n_splits=kfold, shuffle=True, random_state=seed)
     all_fold_results = []
     tokenizer = get_tokenizer(model_name)
@@ -113,5 +113,11 @@ def run_kfold_experiment(
         all_fold_results.append(best_epoch_metrics)
 
     end_time = time.time()
-    print(f"Total time: {end_time - start_time:.2f}s")
+    print(f"\n === {model_name} + {hybrid_type or 'plain'} + {resample_method} Final 10-fold Cross-Validation Results ===")
+    print(f"Total time: {end_time - start_time:.2f}seconds")
+    
+    final_metrics = {k: np.mean([f[k] for f in all_fold_results]) for k in all_fold_results[0].keys()}
+    for metric, value in final_metrics.items():
+        print(f"{metric}: {value:.4f}")
+    
     return all_fold_results
