@@ -113,8 +113,13 @@ def run_kfold_experiment(
         all_fold_results.append(best_epoch_metrics)
 
     end_time = time.time()
+    total_seconds = int(end_time - start_time)
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
     print(f"\n === {model_name} + {hybrid_type or 'plain'} + {resample_method} Final 10-fold Cross-Validation Results ===")
-    print(f"Total time: {end_time - start_time:.2f}seconds")
+    print(f"Total time: {total_seconds} seconds")
+    print(f"Total time: {hours} hrs {minutes} mins {seconds} secs")
     
     final_metrics = {k: np.mean([f[k] for f in all_fold_results]) for k in all_fold_results[0].keys()}
     for metric, value in final_metrics.items():
