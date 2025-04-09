@@ -6,6 +6,10 @@ from hybrid_model import HybridLstmClassifier, HybridCnnClassifier, HybridBilstm
 from transformers import BertTokenizer, RobertaTokenizer, DebertaTokenizer, AutoModelForSequenceClassification
 import numpy as np
 
+from collections import Counter
+from imblearn.under_sampling import RandomUnderSampler
+from imblearn.over_sampling  import RandomOverSampler
+
 def get_tokenizer(model_name):
     if "bert-base-uncased" in model_name.lower():
         print("tokenizer is bert-base-uncased")
@@ -35,11 +39,40 @@ def get_model(model_name, hybrid=None, num_labels=None):
     else:
         raise ValueError("Unsupported hybrid type.")
 
-def apply_resampling(X, y, method="none"):
+def apply_resampling(X, y, method="none",random_state=42):
     if method == "none":
         return X, y
     elif method == "ros":
-        return RandomOverSampler().fit_resample(X, y)
+        upper_cap=2000
+        lower_cap=200
+
+        # 1️⃣ 先把 list 轉成 numpy array，方便 index 對應
+        X_arr = np.array(X, dtype=object)
+        y_arr = np.array(y)
+
+        # 2️⃣ 取得原始類別分佈
+        counter = Counter(y_arr)
+
+        # 3️⃣ 欠採樣策略：只針對 > upper_cap 的類別
+        under_dict = {cls: upper_cap for cls, cnt in counter.items() if cnt > upper_cap}
+        # 如果沒有大類需要欠採樣，under_dict 會是空 dict
+        
+        if under_dict:
+            rus = RandomUnderSampler(sampling_strategy=under_dict, random_state=random_state)
+            X_arr, y_arr = rus.fit_resample(X_arr.reshape(-1, 1), y_arr)
+            X_arr = X_arr.ravel()          # 還原 shape
+
+        # 4️⃣ 重新計算分佈，決定 ROS 目標
+        counter = Counter(y_arr)
+        over_dict = {cls: lower_cap for cls, cnt in counter.items() if cnt < lower_cap}
+    
+        if over_dict:
+            ros = RandomOverSampler(sampling_strategy=over_dict, random_state=random_state)
+            X_arr, y_arr = ros.fit_resample(X_arr.reshape(-1, 1), y_arr)
+            X_arr = X_arr.ravel()
+            
+        return list(X_arr), list(y_arr)
+        
     elif method == "smote":
         return SMOTE().fit_resample(X, y)
     elif method == "textgan":
@@ -72,13 +105,18 @@ def run_kfold_experiment(
         X_val = [X[i] for i in val_idx]
         y_val = [y[i] for i in val_idx]
 
-        X_train, y_train = apply_resampling(X_train, y_train, method=resample_method)
+        X_train, y_train = apply_resampling(X_train, y_train, method=resample_method, random_state=seed)
 
+        label_counts = Counter(y_train)
+        print("Label distribution after resampling:")
+        for lbl, cnt in sorted(label_counts.items()):
+            print(f"  label {lbl}: {cnt}")
+        
         train_dataset = CustomDataset(X_train, y_train, tokenizer, max_length)
         val_dataset = CustomDataset(X_val, y_val, tokenizer, max_length)
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=batch_size)
-
+    
         num_labels = len(set(y))
         model = get_model(model_name, hybrid_type, num_labels=num_labels)
         model.to(device)
