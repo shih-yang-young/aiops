@@ -163,4 +163,4 @@ def run_kfold_experiment(
     for metric, value in final_metrics.items():
         print(f"{metric}: {value:.4f}")
     
-    return all_fold_results
+    return final_metrics
