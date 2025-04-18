@@ -1,7 +1,7 @@
 from dataset import CustomDataset
 from train_eval import train_epoch, eval_model
 from device import get_device_info
-from hybrid_model import HybridLstmClassifier, HybridCnnClassifier, HybridBilstmClassifier
+from hybrid_model import HybridLstmClassifier, HybridCnnClassifier, HybridBilstmClassifier, HybridCnn1Filter234Drop3Classifier, HybridCnn1Filter234Drop5Classifier, HybridCnn1Filter345Drop3Classifier, HybridCnn1Filter345Drop5Classifier, HybridCnn2Filter234Drop3Classifier, HybridCnn2Filter234Drop5Classifier, HybridCnn2Filter345Drop3Classifier, HybridCnn2Filter345Drop5Classifier
 
 from transformers import BertTokenizer, RobertaTokenizer, DebertaTokenizer, AutoModelForSequenceClassification
 import numpy as np
@@ -36,6 +36,30 @@ def get_model(model_name, hybrid=None, num_labels=None):
     elif hybrid == "cnn":
         print("model is", model_name, hybrid)
         return HybridCnnClassifier(model_name, num_labels)
+    elif hybrid == "cnn1filter234drop3":
+        print("model is", model_name, hybrid)
+        return HybridCnn1Filter234Drop3Classifier(model_name, num_labels)
+    elif hybrid == "cnn1filter234drop5":
+        print("model is", model_name, hybrid)
+        return HybridCnn1Filter234Drop5Classifier(model_name, num_labels)
+    elif hybrid == "cnn1filter345drop3":
+        print("model is", model_name, hybrid)
+        return HybridCnn1Filter345Drop3Classifier(model_name, num_labels)
+    elif hybrid == "cnn1filter345drop5":
+        print("model is", model_name, hybrid)
+        return HybridCnn1Filter345Drop5Classifier(model_name, num_labels)
+    elif hybrid == "cnn2filter234drop3":
+        print("model is", model_name, hybrid)
+        return HybridCnn2Filter234Drop3Classifier(model_name, num_labels)
+    elif hybrid == "cnn2filter234drop5":
+        print("model is", model_name, hybrid)
+        return HybridCnn2Filter234Drop5Classifier(model_name, num_labels)
+    elif hybrid == "cnn2filter345drop3":
+        print("model is", model_name, hybrid)
+        return HybridCnn2Filter345Drop3Classifier(model_name, num_labels)
+    elif hybrid == "cnn2filter345drop5":
+        print("model is", model_name, hybrid)
+        return HybridCnn2Filter345Drop5Classifier(model_name, num_labels)
     else:
         raise ValueError("Unsupported hybrid type.")
 
@@ -155,7 +179,7 @@ def run_kfold_experiment(
     hours, remainder = divmod(total_seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
 
-    print(f"\n === {model_name} + {hybrid_type or 'plain'} + {resample_method} Final 10-fold Cross-Validation Results ===")
+    print(f"\n === {model_name} + {hybrid_type or 'plain'} + {resample_method} Final {kfold}-fold Cross-Validation Results ===")
     print(f"Total time: {total_seconds} seconds")
     print(f"Total time: {hours} hrs {minutes} mins {seconds} secs")
     
