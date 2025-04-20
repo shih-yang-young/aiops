@@ -10,6 +10,38 @@ from collections import Counter
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling  import RandomOverSampler
 
+from gensim.models import Word2Vec
+import random
+
+def replace_random_words(text, model, num_replacements=3):
+    words = text.split()
+    if not words:
+        return text
+    replaced_text = []
+    replaced_indices = random.sample(range(len(words)), min(num_replacements, len(words)))
+    for i, word in enumerate(words):
+        if i in replaced_indices and word in model.wv.key_to_index:
+            similar_words = model.wv.most_similar(word, topn=1)
+            if similar_words:
+                replaced_text.append(similar_words[0][0])
+            else:
+                replaced_text.append(word)
+        else:
+            replaced_text.append(word)
+    return ' '.join(replaced_text)
+
+import numpy as np
+
+def get_top_similar_word(word, vocab, model):
+    try:
+        word_emb = model.encode(word, convert_to_tensor=True)
+        vocab_embs = model.encode(vocab, convert_to_tensor=True)
+        cos_scores = util.pytorch_cos_sim(word_emb, vocab_embs)[0]
+        top_idx = int(np.argmax(cos_scores))
+        return vocab[top_idx]
+    except Exception:
+        return word
+
 def get_tokenizer(model_name):
     if "bert-base-uncased" in model_name.lower():
         print("tokenizer is bert-base-uncased")
@@ -97,8 +129,43 @@ def apply_resampling(X, y, method="none",random_state=42):
             
         return list(X_arr), list(y_arr)
         
-    elif method == "smote":
-        return SMOTE().fit_resample(X, y)
+    elif method == "word2vec":
+        print("🚀 Using Word2Vec for data augmentation")
+        lower_cap = 200
+
+        # 用 Counter 數每類有幾筆
+        from collections import Counter
+        label_counts = Counter(y)
+
+        # 訓練 Word2Vec（只用原始訓練資料）
+        corpus = [text.split() for text in X]
+        w2v_model = Word2Vec(corpus, vector_size=100, window=5, min_count=1, sg=0)
+
+        augmented_X, augmented_y = [], []
+
+        for label in sorted(label_counts.keys()):
+            samples = [X[i] for i in range(len(X)) if y[i] == label]
+            count = label_counts[label]
+            
+            # 原始樣本先加進來
+            augmented_X.extend(samples)
+            augmented_y.extend([label] * count)
+
+            if count < lower_cap:
+                needed = lower_cap - count
+                print(f"🔧 Augmenting label {label}: {count} → {lower_cap} (+{needed})")
+
+                for _ in range(needed):
+                    src = random.choice(samples)
+                    augmented_sample = replace_random_words(src, w2v_model, num_replacements=3)
+                    augmented_X.append(augmented_sample)
+                    augmented_y.append(label)
+        
+        return augmented_X, augmented_y
+
+    elif method == "sbert":
+        return ValueError("not implement sbert")
+        
     elif method == "textgan":
         return textgan_augment(X, y)  # 假設你有自訂 function
     else:
