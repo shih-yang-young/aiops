@@ -164,7 +164,67 @@ def apply_resampling(X, y, method="none",random_state=42):
         return augmented_X, augmented_y
 
     elif method == "sbert":
-        return ValueError("not implement sbert")
+        print("🚀 Using SBERT for data augmentation")
+        lower_cap = 200
+    
+        from collections import Counter
+        label_counts = Counter(y)
+    
+        from sentence_transformers import SentenceTransformer, util
+        import torch
+    
+        # 初始化 SBERT 模型（只初始化一次）
+        sbert_model = SentenceTransformer('all-MiniLM-L6-v2')
+    
+        def get_sbert_augmented_sentences(original_sentence: str, corpus_sentences: list, top_k: int = 5, score_threshold: float = 0.7):
+            corpus_embeddings = sbert_model.encode(corpus_sentences, convert_to_tensor=True)
+            query_embedding = sbert_model.encode(original_sentence, convert_to_tensor=True)
+    
+            cosine_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
+            top_results = torch.topk(cosine_scores, k=min(top_k + 1, len(corpus_sentences)))  # +1 是為了避免選到自己
+    
+            results = []
+            for score, idx in zip(top_results[0], top_results[1]):
+                candidate = corpus_sentences[idx]
+                if candidate != original_sentence and score >= score_threshold:
+                    results.append(candidate)
+            return results
+    
+        # 用於增強的語料庫（包含所有句子）
+        all_corpus = list(set(X))
+    
+        augmented_X, augmented_y = [], []
+    
+        for label in sorted(label_counts.keys()):
+            samples = [X[i] for i in range(len(X)) if y[i] == label]
+            count = label_counts[label]
+    
+            # 原始樣本保留
+            augmented_X.extend(samples)
+            augmented_y.extend([label] * count)
+    
+            if count < lower_cap:
+                needed = lower_cap - count
+                print(f"🔧 Augmenting label {label}: {count} → {lower_cap} (+{needed})")
+    
+                added = 0
+                for sentence in samples:
+                    similar_sentences = get_sbert_augmented_sentences(
+                        original_sentence=sentence,
+                        corpus_sentences=all_corpus,
+                        top_k=10,  # 可調整搜尋量
+                        score_threshold=0.75  # 可調整語意標準
+                    )
+                    for aug in similar_sentences:
+                        if added >= needed:
+                            break
+                        augmented_X.append(aug)
+                        augmented_y.append(label)
+                        added += 1
+                    if added >= needed:
+                        break
+    
+        return augmented_X, augmented_y
         
     elif method == "textgan":
         return textgan_augment(X, y)  # 假設你有自訂 function
