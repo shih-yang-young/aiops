@@ -175,7 +175,9 @@ def apply_resampling(X, y, method="none",random_state=42):
     
         # 初始化 SBERT 模型（只初始化一次）
         sbert_model = SentenceTransformer('all-MiniLM-L6-v2')
-    
+        sbert_model.to(get_device_info())
+        print("Model device:", sbert_model.device)
+        
         def get_sbert_augmented_sentences(original_sentence: str, corpus_sentences: list, top_k: int = 5, score_threshold: float = 0.7):
             corpus_embeddings = sbert_model.encode(corpus_sentences, convert_to_tensor=True)
             query_embedding = sbert_model.encode(original_sentence, convert_to_tensor=True)
