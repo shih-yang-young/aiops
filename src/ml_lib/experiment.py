@@ -316,6 +316,9 @@ def run_kfold_experiment(
     final_metrics["total_time"] = f"{hours} hrs {minutes} mins {seconds} secs"
     
     for metric, value in final_metrics.items():
-        print(f"{metric}: {value:.4f}")
+        if isinstance(value, (float, int)):
+            print(f"{metric}: {value:.4f}")
+        else:
+            print(f"{metric}: {value}")
     
     return final_metrics
