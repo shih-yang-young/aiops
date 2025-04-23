@@ -309,10 +309,12 @@ def run_kfold_experiment(
     minutes, seconds = divmod(remainder, 60)
 
     print(f"\n === {model_name} + {hybrid_type or 'plain'} + {resample_method} Final {kfold}-fold Cross-Validation Results ===")
-    print(f"Total time: {total_seconds} seconds")
-    print(f"Total time: {hours} hrs {minutes} mins {seconds} secs")
     
     final_metrics = {k: np.mean([f[k] for f in all_fold_results]) for k in all_fold_results[0].keys()}
+
+    final_metrics["total_seconds"] = total_seconds
+    final_metrics["total_time"] = f"{hours} hrs {minutes} mins {seconds} secs"
+    
     for metric, value in final_metrics.items():
         print(f"{metric}: {value:.4f}")
     
