@@ -4,5 +4,5 @@ models/
 # ─── Python byte‑code 檔案 ───
 __pycache__/          # 忽略所有資料夾層級的 __pycache__
 *.py[cod]             # 忽略 .pyc、.pyo、.pyd
-src/ml_lib
 src/preprocessing/__pycache__
+src/ml_lib/__pycache__
