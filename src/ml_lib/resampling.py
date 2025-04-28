@@ -26,6 +26,20 @@ def replace_random_words(text, model, num_replacements=REPLACE_WORDS_NUM):
             replaced_text.append(word)
     return ' '.join(replaced_text)
 
+def random_deletion(words, p=0.2):
+    # 以機率 p 刪除每個單字
+    if len(words) == 1:
+        return words
+    return [word for word in words if random.uniform(0, 1) > p]
+
+def random_swap(words, n):
+    if len(words) < 2:
+        return words  # 太短無法交換，直接回傳原本
+    for _ in range(n):
+        idx1, idx2 = random.sample(range(len(words)), 2)
+        words[idx1], words[idx2] = words[idx2], words[idx1]
+    return words
+    
 def apply_resampling(X, y, method="none",random_state=SEED, upper_cap=UPPER_CAP, lower_cap=LOWER_CAP):
     if method == "none":
         return X, y
@@ -59,39 +73,90 @@ def apply_resampling(X, y, method="none",random_state=SEED, upper_cap=UPPER_CAP,
         return list(X_arr), list(y_arr)
         
     elif method == "word2vec":
-        print("🚀 Using Word2Vec for data augmentation")
+        print("🚀 Using Word2Vec for data augmentation + under-sampling")
 
-        # 用 Counter 數每類有幾筆
         label_counts = Counter(y)
-
-        # 訓練 Word2Vec（只用原始訓練資料）
+    
+        # 訓練 Word2Vec 模型（只用原始資料）
         corpus = [text.split() for text in X]
         w2v_model = Word2Vec(corpus, vector_size=100, window=5, min_count=1, sg=0)
-
+    
         augmented_X, augmented_y = [], []
-
+    
         for label in sorted(label_counts.keys()):
             samples = [X[i] for i in range(len(X)) if y[i] == label]
             count = label_counts[label]
-            
-            # 原始樣本先加進來
+    
+            if count > upper_cap:
+                # 欠採樣大類別
+                print(f"🔻 Under-sampling label {label}: {count} → {upper_cap}")
+                samples = random.sample(samples, upper_cap)
+                count = upper_cap
+    
+            # 保留目前樣本
             augmented_X.extend(samples)
             augmented_y.extend([label] * count)
-
+    
             if count < lower_cap:
+                # 過採樣小類別
                 needed = lower_cap - count
                 print(f"🔧 Augmenting label {label}: {count} → {lower_cap} (+{needed})")
-
+    
                 for _ in range(needed):
                     src = random.choice(samples)
                     augmented_sample = replace_random_words(src, w2v_model, num_replacements=3)
                     augmented_X.append(augmented_sample)
                     augmented_y.append(label)
-        
+    
         return augmented_X, augmented_y
-    elif method == "eda":
-        ## 幫我完成EDA
-        return 
+    elif method == "word2vec_eda":
+        print("🚀 Using Word2Vec + EDA (replace + deletion/swap) for data augmentation + under-sampling")
+    
+        label_counts = Counter(y)
+        augmented_X, augmented_y = [], []
+    
+        # 訓練 Word2Vec 模型
+        corpus = [text.split() for text in X]
+        w2v_model = Word2Vec(corpus, vector_size=100, window=5, min_count=1, sg=0)
+    
+        for label in sorted(label_counts.keys()):
+            samples = [X[i] for i in range(len(X)) if y[i] == label]
+            count = label_counts[label]
+    
+            if count > upper_cap:
+                # 欠採樣大類別
+                print(f"🔻 Under-sampling label {label}: {count} → {upper_cap}")
+                samples = random.sample(samples, upper_cap)
+                count = upper_cap
+    
+            # 保留目前樣本
+            augmented_X.extend(samples)
+            augmented_y.extend([label] * count)
+    
+            if count < lower_cap:
+                # 過採樣小類別
+                needed = lower_cap - count
+                print(f"🔧 Augmenting label {label}: {count} → {lower_cap} (+{needed})")
+    
+                added = 0
+                while added < needed:
+                    src = random.choice(samples)
+                    # 第一步：用 Word2Vec 抽換
+                    replaced = replace_random_words(src, w2v_model, num_replacements=3)
+                    words = replaced.split()
+    
+                    # 第二步：再做刪除或交換
+                    if random.random() < 0.5:
+                        aug_words = random_deletion(words)
+                    else:
+                        aug_words = random_swap(words, n=2)
+    
+                    aug = ' '.join(aug_words)
+                    augmented_X.append(aug)
+                    augmented_y.append(label)
+                    added += 1
+    
+        return augmented_X, augmented_y
     elif method == "sbert":
         print("🚀 Using SBERT for data augmentation")
         label_counts = Counter(y)
