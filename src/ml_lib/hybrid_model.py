@@ -43,7 +43,7 @@ class HybridLstmClassifier(nn.Module):
             return {"logits": logits}
 
 class HybridCnnClassifier(nn.Module):
-    def __init__(self, model_name, num_labels, num_filters=100, filter_sizes=(2, 3, 4), dropout_rate=0.3):
+    def __init__(self, model_name, num_labels, num_filters=100, filter_sizes=(3, 4, 5), dropout_rate=0.5):
         super(HybridCnnClassifier, self).__init__()
         self.bert = AutoModel.from_pretrained(model_name)
         self.filter_sizes = filter_sizes
