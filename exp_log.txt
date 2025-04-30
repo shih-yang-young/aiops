@@ -1,2 +1,0 @@
-----------2025-01-12_reproduce_完整source code內容
-如名完整重現paper內容

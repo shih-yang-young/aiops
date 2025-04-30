@@ -1,6 +1,7 @@
 from dataset import CustomDataset
 from train_eval import train_epoch, eval_model
-from hybrid_model import HybridLstmClassifier, HybridCnnClassifier, HybridBilstmClassifier, HybridCnn1Filter234Drop3Classifier, HybridCnn1Filter234Drop5Classifier, HybridCnn1Filter345Drop3Classifier, HybridCnn1Filter345Drop5Classifier, HybridCnn2Filter234Drop3Classifier, HybridCnn2Filter234Drop5Classifier, HybridCnn2Filter345Drop3Classifier, HybridCnn2Filter345Drop5Classifier
+from hybrid_model import HybridLstmClassifier, HybridCnnClassifier, HybridBilstmClassifier
+from cnn_model import HybridCnn1Filter234Drop3Classifier, HybridCnn1Filter234Drop5Classifier, HybridCnn1Filter345Drop3Classifier, HybridCnn1Filter345Drop5Classifier, HybridCnn2Filter234Drop3Classifier, HybridCnn2Filter234Drop5Classifier, HybridCnn2Filter345Drop3Classifier, HybridCnn2Filter345Drop5Classifier
 from resampling import apply_resampling
 from device import get_device_info
 from transformers import BertTokenizer, RobertaTokenizer, DebertaTokenizer, AutoModelForSequenceClassification
@@ -10,6 +11,7 @@ from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import DataLoader
 from torch.nn import CrossEntropyLoss
 from torch.optim import AdamW
+import torch
 import time
 
 def get_tokenizer(model_name):
@@ -71,7 +73,8 @@ def get_model(model_name, hybrid=None, num_labels=None):
 
 def run_kfold_experiment(
     X, y, model_name, hybrid_type, resample_method,
-    kfold, seed, epochs, patience, max_length, batch_size, lr, weight_decay, upper_cap, lower_cap
+    kfold, seed, epochs, patience, max_length, batch_size, lr, weight_decay, 
+    upper_cap, lower_cap, use_weighted_loss=False
 ):
     print(f"▶ Running: {model_name} + {hybrid_type or 'plain'} + {resample_method}")
     skf = StratifiedKFold(n_splits=kfold, shuffle=True, random_state=seed)
@@ -104,7 +107,16 @@ def run_kfold_experiment(
         model.to(device)
 
         optimizer = AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
-        criterion = CrossEntropyLoss()
+        
+        # 🔥 加入 Weighted CrossEntropy Loss（平滑版）
+        if use_weighted_loss:
+            samples_per_class = [label_counts.get(i, 0) for i in range(num_labels)]
+            weights = np.log((sum(samples_per_class) + 1e-6) / (np.array(samples_per_class) + 1e-6))
+            weights = torch.tensor(weights, dtype=torch.float).to(device)
+            print(f"Using weighted CrossEntropyLoss with weights: {weights}")
+            criterion = CrossEntropyLoss(weight=weights)
+        else:
+            criterion = CrossEntropyLoss()
 
         epoch_results = []
         best_macro_f1 = 0
