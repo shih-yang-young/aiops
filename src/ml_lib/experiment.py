@@ -2,6 +2,9 @@ from dataset import CustomDataset
 from train_eval import train_epoch, eval_model
 from hybrid_model import HybridLstmClassifier, HybridCnnClassifier, HybridBilstmClassifier
 from cnn_model import HybridCnn1Filter234Drop3Classifier, HybridCnn1Filter234Drop5Classifier, HybridCnn1Filter345Drop3Classifier, HybridCnn1Filter345Drop5Classifier, HybridCnn2Filter234Drop3Classifier, HybridCnn2Filter234Drop5Classifier, HybridCnn2Filter345Drop3Classifier, HybridCnn2Filter345Drop5Classifier
+
+from lstm_model import Lstm1Layer256Hidden3Dropout, Lstm1Layer256Hidden5Dropout, Lstm1Layer512Hidden3Dropout, Lstm1Layer512Hidden5Dropout, Lstm2Layer256Hidden3Dropout, Lstm2Layer256Hidden5Dropout, Lstm2Layer512Hidden3Dropout, Lstm2Layer512Hidden5Dropout, Lstm3Layer256Hidden3Dropout, Lstm3Layer256Hidden5Dropout, Lstm3Layer512Hidden3Dropout, Lstm3Layer512Hidden5Dropout
+
 from resampling import apply_resampling
 from device import get_device_info
 from transformers import BertTokenizer, RobertaTokenizer, DebertaTokenizer, AutoModelForSequenceClassification
@@ -64,12 +67,44 @@ def get_model(model_name, hybrid=None, num_labels=None):
     elif hybrid == "cnn2filter345drop5":
         print("model is", model_name, hybrid)
         return HybridCnn2Filter345Drop5Classifier(model_name, num_labels)
+    elif hybrid == "Lstm1Layer256Hidden3Dropout":
+        print("model is", model_name, hybrid)
+        return Lstm1Layer256Hidden3Dropout(model_name, num_labels)
+    elif hybrid == "Lstm1Layer256Hidden5Dropout":
+        print("model is", model_name, hybrid)
+        return Lstm1Layer256Hidden5Dropout(model_name, num_labels)
+    elif hybrid == "Lstm1Layer512Hidden3Dropout":
+        print("model is", model_name, hybrid)
+        return Lstm1Layer512Hidden3Dropout(model_name, num_labels)
+    elif hybrid == "Lstm1Layer512Hidden5Dropout":
+        print("model is", model_name, hybrid)
+        return Lstm1Layer512Hidden5Dropout(model_name, num_labels)
+    elif hybrid == "Lstm2Layer256Hidden3Dropout":
+        print("model is", model_name, hybrid)
+        return Lstm2Layer256Hidden3Dropout(model_name, num_labels)
+    elif hybrid == "Lstm2Layer256Hidden5Dropout":
+        print("model is", model_name, hybrid)
+        return Lstm2Layer256Hidden5Dropout(model_name, num_labels)
+    elif hybrid == "Lstm2Layer512Hidden3Dropout":
+        print("model is", model_name, hybrid)
+        return Lstm2Layer512Hidden3Dropout(model_name, num_labels)
+    elif hybrid == "Lstm2Layer512Hidden5Dropout":
+        print("model is", model_name, hybrid)
+        return Lstm2Layer512Hidden5Dropout(model_name, num_labels)
+    elif hybrid == "Lstm3Layer256Hidden3Dropout":
+        print("model is", model_name, hybrid)
+        return Lstm3Layer256Hidden3Dropout(model_name, num_labels)
+    elif hybrid == "Lstm3Layer256Hidden5Dropout":
+        print("model is", model_name, hybrid)
+        return Lstm3Layer256Hidden5Dropout(model_name, num_labels)
+    elif hybrid == "Lstm3Layer512Hidden3Dropout":
+        print("model is", model_name, hybrid)
+        return Lstm3Layer512Hidden3Dropout(model_name, num_labels)
+    elif hybrid == "Lstm3Layer512Hidden5Dropout":
+        print("model is", model_name, hybrid)
+        return Lstm3Layer512Hidden5Dropout(model_name, num_labels)
     else:
         raise ValueError("Unsupported hybrid type.")
-
-
-
-
 
 def run_kfold_experiment(
     X, y, model_name, hybrid_type, resample_method,
