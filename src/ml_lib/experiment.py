@@ -5,6 +5,8 @@ from cnn_model import HybridCnn1Filter234Drop3Classifier, HybridCnn1Filter234Dro
 
 from lstm_model import Lstm1Layer256Hidden3Dropout, Lstm1Layer256Hidden5Dropout, Lstm1Layer512Hidden3Dropout, Lstm1Layer512Hidden5Dropout, Lstm2Layer256Hidden3Dropout, Lstm2Layer256Hidden5Dropout, Lstm2Layer512Hidden3Dropout, Lstm2Layer512Hidden5Dropout, Lstm3Layer256Hidden3Dropout, Lstm3Layer256Hidden5Dropout, Lstm3Layer512Hidden3Dropout, Lstm3Layer512Hidden5Dropout
 
+from bilstm_model import Bilstm1Layer256Hidden3Dropout, Bilstm1Layer256Hidden5Dropout, Bilstm1Layer512Hidden3Dropout, Bilstm1Layer512Hidden5Dropout, Bilstm2Layer256Hidden3Dropout, Bilstm2Layer256Hidden5Dropout, Bilstm2Layer512Hidden3Dropout, Bilstm2Layer512Hidden5Dropout, Bilstm3Layer256Hidden3Dropout, Bilstm3Layer256Hidden5Dropout, Bilstm3Layer512Hidden3Dropout, Bilstm3Layer512Hidden5Dropout
+
 from resampling import apply_resampling
 from device import get_device_info
 from transformers import BertTokenizer, RobertaTokenizer, DebertaTokenizer, AutoModelForSequenceClassification
@@ -103,6 +105,39 @@ def get_model(model_name, hybrid=None, num_labels=None):
     elif hybrid == "Lstm3Layer512Hidden5Dropout":
         print("model is", model_name, hybrid)
         return Lstm3Layer512Hidden5Dropout(model_name, num_labels)
+    elif hybrid == "Bilstm1Layer256Hidden5Dropout":
+        print("model is", model_name, hybrid)
+        return Bilstm1Layer256Hidden5Dropout(model_name, num_labels)
+    elif hybrid == "Bilstm1Layer512Hidden3Dropout":
+        print("model is", model_name, hybrid)
+        return Bilstm1Layer512Hidden3Dropout(model_name, num_labels)
+    elif hybrid == "Bilstm1Layer512Hidden5Dropout":
+        print("model is", model_name, hybrid)
+        return Bilstm1Layer512Hidden5Dropout(model_name, num_labels)
+    elif hybrid == "Bilstm2Layer256Hidden3Dropout":
+        print("model is", model_name, hybrid)
+        return Bilstm2Layer256Hidden3Dropout(model_name, num_labels)
+    elif hybrid == "Bilstm2Layer256Hidden5Dropout":
+        print("model is", model_name, hybrid)
+        return Bilstm2Layer256Hidden5Dropout(model_name, num_labels)
+    elif hybrid == "Bilstm2Layer512Hidden3Dropout":
+        print("model is", model_name, hybrid)
+        return Bilstm2Layer512Hidden3Dropout(model_name, num_labels)
+    elif hybrid == "Bilstm2Layer512Hidden5Dropout":
+        print("model is", model_name, hybrid)
+        return Bilstm2Layer512Hidden5Dropout(model_name, num_labels)
+    elif hybrid == "Bilstm3Layer256Hidden3Dropout":
+        print("model is", model_name, hybrid)
+        return Bilstm3Layer256Hidden3Dropout(model_name, num_labels)
+    elif hybrid == "Bilstm3Layer256Hidden5Dropout":
+        print("model is", model_name, hybrid)
+        return Bilstm3Layer256Hidden5Dropout(model_name, num_labels)
+    elif hybrid == "Bilstm3Layer512Hidden3Dropout":
+        print("model is", model_name, hybrid)
+        return Bilstm3Layer512Hidden3Dropout(model_name, num_labels)
+    elif hybrid == "Bilstm3Layer512Hidden5Dropout":
+        print("model is", model_name, hybrid)
+        return Bilstm3Layer512Hidden5Dropout(model_name, num_labels)
     else:
         raise ValueError("Unsupported hybrid type.")
 
