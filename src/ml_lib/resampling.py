@@ -157,63 +157,69 @@ def apply_resampling(X, y, method="none",random_state=SEED, upper_cap=UPPER_CAP,
                     added += 1
     
         return augmented_X, augmented_y
-    elif method == "sbert":
-        print("🚀 Using SBERT for data augmentation")
+    elif method == "t5":
+        print("🚀 Using T5-paraphraser for data augmentation + under-sampling")
+
+        from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+        import torch
+
+        # 初始化 T5-paraphraser 模型
+        t5_tokenizer = AutoTokenizer.from_pretrained("ramsrigouthamg/t5_paraphraser")
+        t5_model = AutoModelForSeq2SeqLM.from_pretrained("ramsrigouthamg/t5_paraphraser")
+        t5_model = t5_model.to(get_device_info(print_info=False))
+
+        def t5_paraphrase(text, num_return_sequences=3, max_length=MAX_LENGTH):
+            prompt = f"paraphrase: {text} </s>"
+            input_ids = t5_tokenizer.encode(prompt, return_tensors="pt", truncation=True).to(t5_model.device)
+            outputs = t5_model.generate(
+                input_ids=input_ids,
+                max_length=max_length,
+                do_sample=True,
+                top_k=50,
+                top_p=0.95,
+                temperature=1.5,
+                num_return_sequences=num_return_sequences
+            )
+            return [t5_tokenizer.decode(out, skip_special_tokens=True) for out in outputs]
+
         label_counts = Counter(y)
-        
-        # 初始化 SBERT 模型（只初始化一次）
-        sbert_model = SentenceTransformer('all-MiniLM-L6-v2')
-        sbert_model.to(get_device_info())
-        print("Model device:", sbert_model.device)
-        
-        def get_sbert_augmented_sentences(original_sentence: str, corpus_sentences: list, top_k: int = 5, score_threshold: float = 0.7):
-            corpus_embeddings = sbert_model.encode(corpus_sentences, convert_to_tensor=True)
-            query_embedding = sbert_model.encode(original_sentence, convert_to_tensor=True)
-    
-            cosine_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
-            top_results = torch.topk(cosine_scores, k=min(top_k + 1, len(corpus_sentences)))  # +1 是為了避免選到自己
-    
-            results = []
-            for score, idx in zip(top_results[0], top_results[1]):
-                candidate = corpus_sentences[idx]
-                if candidate != original_sentence and score >= score_threshold:
-                    results.append(candidate)
-            return results
-    
-        # 用於增強的語料庫（包含所有句子）
-        all_corpus = list(set(X))
-    
         augmented_X, augmented_y = [], []
-    
+
         for label in sorted(label_counts.keys()):
             samples = [X[i] for i in range(len(X)) if y[i] == label]
             count = label_counts[label]
-    
-            # 原始樣本保留
+
+            # 欠採樣大類別
+            if count > upper_cap:
+                print(f"🔻 Under-sampling label {label}: {count} → {upper_cap}")
+                samples = random.sample(samples, upper_cap)
+                count = upper_cap
+
+            # 保留樣本
             augmented_X.extend(samples)
             augmented_y.extend([label] * count)
-    
+
+            # 過採樣小類別
             if count < lower_cap:
                 needed = lower_cap - count
                 print(f"🔧 Augmenting label {label}: {count} → {lower_cap} (+{needed})")
-    
+
                 added = 0
-                for sentence in samples:
-                    similar_sentences = get_sbert_augmented_sentences(
-                        original_sentence=sentence,
-                        corpus_sentences=all_corpus,
-                        top_k=10,  # 可調整搜尋量
-                        score_threshold=0.75  # 可調整語意標準
-                    )
-                    for aug in similar_sentences:
+                while added < needed:
+                    src = random.choice(samples)
+                    try:
+                        new_texts = t5_paraphrase(src, num_return_sequences=min(3, needed - added))
+                    except Exception as e:
+                        print(f"⚠️ Error generating paraphrase: {e}")
+                        continue
+
+                    for text in new_texts:
                         if added >= needed:
                             break
-                        augmented_X.append(aug)
+                        augmented_X.append(text)
                         augmented_y.append(label)
                         added += 1
-                    if added >= needed:
-                        break
-    
+
         return augmented_X, augmented_y
         
     elif method == "textgan":
