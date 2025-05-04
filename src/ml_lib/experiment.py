@@ -105,6 +105,9 @@ def get_model(model_name, hybrid=None, num_labels=None):
     elif hybrid == "Lstm3Layer512Hidden5Dropout":
         print("model is", model_name, hybrid)
         return Lstm3Layer512Hidden5Dropout(model_name, num_labels)
+    elif hybrid == "Bilstm1Layer256Hidden3Dropout":
+        print("model is", model_name, hybrid)
+        return Bilstm1Layer256Hidden3Dropout(model_name, num_labels)
     elif hybrid == "Bilstm1Layer256Hidden5Dropout":
         print("model is", model_name, hybrid)
         return Bilstm1Layer256Hidden5Dropout(model_name, num_labels)
