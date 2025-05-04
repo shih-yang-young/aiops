@@ -3,7 +3,7 @@ import torch.nn as nn
 from transformers import AutoModel
 
 class HybridLstmClassifier(nn.Module):
-    def __init__(self, model_name, num_labels, hidden_size=256, dropout_rate=0.3):
+    def __init__(self, model_name, num_labels, hidden_size=512, dropout_rate=0.5f):
         super(HybridLstmClassifier, self).__init__()
         self.bert = AutoModel.from_pretrained(model_name)
         self.hidden_size = hidden_size
