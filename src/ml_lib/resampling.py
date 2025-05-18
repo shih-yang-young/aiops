@@ -166,7 +166,7 @@ def apply_resampling(X, y, method="none",random_state=SEED, upper_cap=UPPER_CAP,
         # 初始化 T5-paraphraser 模型
         t5_tokenizer = AutoTokenizer.from_pretrained("ramsrigouthamg/t5_paraphraser")
         t5_model = AutoModelForSeq2SeqLM.from_pretrained("ramsrigouthamg/t5_paraphraser")
-        t5_model = t5_model.to(get_device_info(print_info=False))
+        t5_model = t5_model.to(get_device_info(print_info=True))
 
         def t5_paraphrase(text, num_return_sequences=3, max_length=MAX_LENGTH):
             prompt = f"paraphrase: {text} </s>"
